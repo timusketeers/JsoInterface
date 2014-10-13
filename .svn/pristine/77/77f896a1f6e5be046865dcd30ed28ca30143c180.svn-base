@@ -1,0 +1,28 @@
+package com.howbuy.jso.service.network.protocol;
+
+public class Param
+{
+    private int header;
+    
+    private byte[] data;
+
+    public int getHeader()
+    {
+        return header;
+    }
+
+    public void setHeader(int header)
+    {
+        this.header = header;
+    }
+
+    public byte[] getData()
+    {
+        return data;
+    }
+
+    public void setData(byte[] data)
+    {
+        this.data = data;
+    }
+}

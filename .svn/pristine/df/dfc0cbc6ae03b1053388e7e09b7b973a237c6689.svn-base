@@ -1,0 +1,44 @@
+package com.howbuy.jso.service.network.thread;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.LinkedList;
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.protocol.CmdReq;
+
+/**
+ * 心跳线程，用于维持链路.
+ * @author li.zhang
+ * 2014-9-22
+ *
+ */
+public class HeartbeatThread implements Runnable
+{
+    private static final int BUFFERSIZE = 1024 * 10;
+    private Selector selector;
+    private SelectionKey key;
+
+    public HeartbeatThread(Selector sel, SelectionKey key)
+    {
+        this.key = key;
+        selector = sel;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void run()
+    {
+        LinkedList<ByteBuffer> outseq = (LinkedList<ByteBuffer>)key.attachment();
+        while (true)
+        {
+            CmdReq heartBeatReq = new CmdReq();
+            heartBeatReq.setCmd(CmdEnum.HEART_BEAT.getCommand());
+            
+            ByteBuffer bb = ByteBuffer.allocate(BUFFERSIZE);
+            bb = ByteBuffer.wrap(heartBeatReq.toByteStream());
+            outseq.offer(bb);
+            key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            selector.wakeup();
+        }
+    }
+}

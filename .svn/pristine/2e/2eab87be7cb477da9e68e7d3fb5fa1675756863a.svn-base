@@ -1,0 +1,695 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0039)http://jasonshieh.iteye.com/blog/927376 -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <title>java socket非阻塞I/O 详解 - Jasonshieh - ITeye技术网站</title>
+    <meta name="description" content="本文转自：http://www.blogjava.net/jake1036/archive/2010/08/01/327703.html 作者：jake1036 1      非阻塞（Nonblocking）体系结构 　　          在这一部分，我将从�� ...">
+    <meta name="keywords" content="Java, Socket, 应用服务器, 网络应用, .net java socket非阻塞I/O 详解">
+    <link rel="shortcut icon" href="http://jasonshieh.iteye.com/images/favicon.ico" type="image/x-icon">
+    <link rel="search" type="application/opensearchdescription+xml" href="http://jasonshieh.iteye.com/open_search.xml" title="ITeye">
+    <link href="http://jasonshieh.iteye.com/rss" rel="alternate" title="Jasonshieh" type="application/rss+xml">
+    <link href="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/blog.css" media="screen" rel="stylesheet" type="text/css">
+<link href="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/blue.css" media="screen" rel="stylesheet" type="text/css">
+    <script async="" type="text/javascript" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/ca-pub-7775868915498600.js"></script><script type="text/javascript" async="" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/ga.js"></script><script src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/application.js" type="text/javascript"></script>
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-535605-1']);
+  _gaq.push(['_setDomainName', 'iteye.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+
+      <link href="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/SyntaxHighlighter.css" media="screen" rel="stylesheet" type="text/css">
+  <script src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/shCoreCommon.js" type="text/javascript"></script>
+<script src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/hotkey.js" type="text/javascript"></script>
+  <script src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/code_favorites.js" type="text/javascript"></script>
+<script src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/weiboshare.js" type="text/javascript"></script>
+  <style type="text/css">.dp-j .annotation { color: #646464; }.dp-j .number { color: #C00000; }</style></head>
+  <body>
+    <div id="header">
+      <div id="blog_site_nav">
+  <a href="http://www.iteye.com/" class="homepage">首页</a>
+  <a href="http://www.iteye.com/news">资讯</a>
+  <a href="http://www.iteye.com/magazines">精华</a>
+  <a href="http://www.iteye.com/forums">论坛</a>
+  <a href="http://www.iteye.com/ask">问答</a>
+  <a href="http://www.iteye.com/blogs">博客</a>
+  <a href="http://www.iteye.com/blogs/subjects">专栏</a>
+  <a href="http://www.iteye.com/groups">群组</a>
+  <a href="http://jasonshieh.iteye.com/blog/927376#" onclick="return false;" id="msna"><u>更多</u> <small>▼</small></a>
+  <div class="quick_menu" style="display:none;">
+    <a target="_blank" href="http://job.iteye.com/iteye">招聘</a>
+    <a href="http://www.iteye.com/search">搜索</a>
+  </div>
+</div>
+
+      <div id="user_nav">
+      <a href="http://jasonshieh.iteye.com/login" class="welcome" title="登录">您还未登录 !</a>
+    <a href="http://jasonshieh.iteye.com/login">登录</a>
+    <a href="http://jasonshieh.iteye.com/signup" class="nobg">注册</a>
+  </div>
+
+    </div>
+
+    <div id="page">
+      <div id="branding" class="clearfix">
+        <div id="blog_name">
+          <h1><a href="http://jasonshieh.iteye.com/">Jasonshieh</a></h1>
+        </div>
+        <div id="fd"></div>
+        <div id="blog_navbar">
+          <ul>
+            <li class="blog_navbar_for"><a href="http://jasonshieh.iteye.com/"><strong>博客</strong></a></li>
+            <li><a href="http://jasonshieh.iteye.com/weibo">微博</a></li>
+            <li><a href="http://jasonshieh.iteye.com/album">相册</a></li>
+            <li><a href="http://jasonshieh.iteye.com/link">收藏</a></li>
+            <li><a href="http://jasonshieh.iteye.com/blog/guest_book">留言</a></li>
+            <li><a href="http://jasonshieh.iteye.com/blog/profile">关于我</a></li>
+          </ul>
+    
+          <div class="search">
+            <form action="http://jasonshieh.iteye.com/blog/search" method="get">
+              <input class="search_text" id="query" name="query" style="margin-left: 10px;width: 110px;" type="text" value="">
+              <input class="submit_search" type="submit" value="">
+            </form>
+          </div> 
+          <div id="fd"></div>         
+        </div>
+      </div>
+      
+      <div id="content" class="clearfix">
+        <div id="main">
+          
+
+
+
+          
+
+
+<div class="h-entry" style="display:none">
+  <a href="http://jasonshieh.iteye.com/" class="p-author" target="_blank">JasonShieh</a>
+</div>
+
+
+<div class="blog_main">
+  <div class="blog_title">
+    <h3>
+      <a href="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站.htm">java socket非阻塞I/O 详解</a>
+      <em class="actions">      </em>
+    </h3>
+    
+        <div class="news_tag"><a href="http://www.iteye.com/blogs/tag/Java">Java</a><a href="http://www.iteye.com/blogs/tag/Socket">Socket</a><a href="http://www.iteye.com/blogs/tag/%E5%BA%94%E7%94%A8%E6%9C%8D%E5%8A%A1%E5%99%A8">应用服务器</a><a href="http://www.iteye.com/blogs/tag/%E7%BD%91%E7%BB%9C%E5%BA%94%E7%94%A8">网络应用</a><a href="http://www.iteye.com/blogs/tag/.net">.net</a>&nbsp;</div>
+  </div>
+
+  <div id="blog_content" class="blog_content">
+    本文转自：http://www.blogjava.net/jake1036/archive/2010/08/01/327703.html
+<br>作者：jake1036
+<br>1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 非阻塞（Nonblocking）体系结构
+<br>　　
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在这一部分，我将从理论的角度来解释非阻塞体系的结构及其工作原理。这部“喜剧”（当然，如果你喜欢的话也可以称做戏剧）的“人物”如下：
+<br>　　●服务器端：接收请求的应用程序。
+<br>　　●客户端：向服务器端发出请求的应用程序。
+<br>　　●套接字通道：客户端与服务器端之间的通信通道。它能识别服务器端的ＩＰ地址和端口号。数据以Buffer中元素的形式通过套接字通道传送。
+<br>　　●选择器：所有非阻塞技术的主要对象。它监视着已注册的套接字通道，并序列化服务器需要应答的请求。
+<br>　　●关键字：选择器用来对对象的请求进行排序。每个关键字代表一个单独的客户端子请求并包含识别客户端和请求类型的信息。
+<br>
+<br>&nbsp; 2 SocketChannel 类 
+<br>&nbsp; 
+<br>&nbsp;&nbsp;&nbsp; SocketAddress rama = new SocketAddress("localhost" , 8888) ;
+<br>&nbsp;&nbsp;&nbsp; 利用静态工厂方法得到SocketChannel的实例。
+<br>&nbsp;&nbsp;&nbsp; SocketChannel client = SocketChannel.open(rama) ;
+<br>
+<br>&nbsp; 如果这是传统的套接字，那么就会寻求得到socket的输入或者输出流，利用通道，我们可以直接写入通道本身，
+<br>&nbsp; 不是写入字节数组，而是要写入ByteBuffer对象，将此对象写入 client的read 方法。
+<br><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/1.png">
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 客户端应用程序同时执行对服务器端的请求，接着选择器将其集中起来，创建关键字，然后将其发
+<br>送至服务器端。这看起来像是阻塞（Blocking）体系，因为在一定时间内只处理一个请求，但事实并非如此。
+<br>实际上，每个关键字不代表从客户端发至服务器端的整个信息流，仅仅只是一部分。我们不要忘了选择器能
+<br>分割那些被关键字标识的子请求里的数据。因此，如果有更多连续地数据发送至服务器端，那么选择器就会
+<br>创建更多的根据时间共享策略（Time-sharing policy）来进行处理的关键字。强调一下，在图一中关键字的颜色
+<br>与客户端的颜色相对应。
+<br>&nbsp;&nbsp; 
+<br>
+<br>&nbsp;&nbsp;&nbsp;&nbsp; 服务器端非阻塞（Server Nonblocking）
+<br>客户端和服务器端是两个Java应用程序。套接字通道是SocketChannel类的实例，这个类允许通过网络传送数据。
+<br>它们能被Java程序员看作是一个新的套接字。SocketChannel类被定义在java.nio.channel包中。
+<br>　　选择器是一个Selector类的对象。该类的每个实例均能监视更多的套接字通道，进而建立更多的连接。
+<br>当一些有意义的事发生在通道上（如客户端试图连接服务器端或进行读/写操作），选择器便会通知应用程序处理请求。
+<br>选择器会创建一个关键字，这个关键字是SelectionKey类的一个实例。每个关键字都保存着应用程序的标识及请求的类型。
+<br>其中，请求的类型可以是如下之一：
+<br>
+<br>基本上，服务器端的实现是由选择器等待事件和创建关键字的无限循环组成的。根据关键字的类型，及时的执行操作。
+<br>关键字存在以下4种可能的类型。
+<br>　　Acceptable: 相应的客户端要求连接。
+<br>　　Connectable:服务器端接受连接。
+<br>　　Readable:服务器端可读。
+<br>　　Writeable:服务器端可写。
+<br>
+<br>
+<br>
+<br>一个通用的实现非阻塞服务器的算法如下：
+<br>　　create SocketChannel;
+<br>　　create Selector
+<br>　　associate the SocketChannel to the Selector
+<br>　　for(;;) {
+<br>　　waiting events from the Selector;
+<br>　　event arrived; create keys;
+<br>　　for each key created by Selector {
+<br>　　check the type of request;
+<br>　　isAcceptable:
+<br>　　get the client SocketChannel;
+<br>　　associate that SocketChannel　to the Selector;
+<br>　　record it for read/write operations
+<br>　　continue;
+<br>　　isReadable:
+<br>　　get the client SocketChannel;
+<br>　　read from the socket;
+<br>　　continue;
+<br>　　isWriteable:
+<br>　　get the client SocketChannel;
+<br>　　write on the socket;
+<br>　　continue;
+<br>　　}
+<br>　　}
+<br>
+<br>
+<br> 3&nbsp; 下面为一个实例 
+<br>&nbsp;&nbsp;&nbsp;&nbsp; （1）客户端
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<br><div class="dp-highlighter" id=""><div class="bar"><div class="tools">Java代码 <embed wmode="transparent" src="/javascripts/syntaxhighlighter/clipboard_new.swf" width="14" height="15" flashvars="clipboard=package%20cn.bupt.channel%3B%0A%0Aimport%20java.io.IOException%3B%0Aimport%20java.net.InetSocketAddress%3B%0Aimport%20java.net.SocketAddress%3B%0Aimport%20java.nio.ByteBuffer%3B%0Aimport%20java.nio.channels.Channels%3B%0Aimport%20java.nio.channels.SocketChannel%3B%0Aimport%20java.nio.channels.WritableByteChannel%3B%0A%0Aimport%20cn.bupt.constant.Default%3B%0A%0Apublic%20class%20ChargenClient%20%7B%0A%0A%20%20%20%20public%20static%20int%20DEFAULT_PORT%20%3D%208778%20%3B%0A%20%20%20%20%2F**%0A%20%20%20%20%20*%20%40param%20args%0A%20%20%20%20%20*%2F%0A%20%20%20%20public%20static%20void%20main(String%5B%5D%20args)%20%7B%0A%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20method%20stub%0A%20%20%20%20%20%20%20if(args.length%20%3D%3D%200)%0A%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20System.out.println(%22please%20input%20the%20port%22)%3B%0A%20%20%20%20%20%20%20%20%20%20%20return%20%3B%0A%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20int%20port%20%3B%0A%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20port%20%3D%20DEFAULT_PORT%20%3B%0A%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20SocketAddress%20address%20%3D%20new%20InetSocketAddress(args%5B0%5D%20%2C%20port)%20%3B%0A%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20SocketChannel%20client%20%3D%20SocketChannel.open(address)%20%3B%0A%20%20%20%20%20%20%20%20ByteBuffer%20buffer%20%3D%20ByteBuffer.allocate(74)%20%3B%0A%20%20%20%20%20%20%20%20WritableByteChannel%20out%20%3D%20Channels.newChannel(System.out)%20%3B%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20while(client.read(buffer)%20!%3D%20-1)%0A%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20buffer.flip()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20out.write(buffer)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20buffer.clear()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%7D%20catch%20(IOException%20e)%20%7B%0A%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20catch%20block%0A%20%20%20%20%20%20%20%20e.printStackTrace()%3B%0A%20%20%20%20%7D%0A%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%7D%0A%0A%7D%0A%0A%0A%20%20%20%20%20%20%0A%20%20%20%EF%BC%882%EF%BC%89%20%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%20%0A%20%20%20%20%20%20%20%20%0A%0Apackage%20cn.bupt.channel%3B%0A%0Aimport%20java.io.IOException%3B%0Aimport%20java.net.InetSocketAddress%3B%0Aimport%20java.net.ServerSocket%3B%0Aimport%20java.nio.ByteBuffer%3B%0Aimport%20java.nio.channels.SelectionKey%3B%0Aimport%20java.nio.channels.Selector%3B%0Aimport%20java.nio.channels.ServerSocketChannel%3B%0Aimport%20java.nio.channels.SocketChannel%3B%0Aimport%20java.util.Iterator%3B%0Aimport%20java.util.Set%3B%0A%0Apublic%20class%20ChargenServer%20%7B%0A%20%0A%20%20%20%20public%20static%20final%20int%20DEFAULT_PORT%20%3D%208778%20%3B%0A%20%20%20%20%2F**%0A%20%20%20%20%20*%20%40param%20args%0A%20%20%20%20%20*%2F%0A%20%20%20%20public%20static%20void%20main(String%5B%5D%20args)%20%7B%0A%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20method%20stub%0A%20%20%20%20%20%20%20%20int%20port%20%3B%0A%20%20%20%20%20%20%20%20port%20%3D%20DEFAULT_PORT%20%3B%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20byte%5B%5D%20rotation%20%3D%20new%20byte%5B95%20*%202%20%5D%20%3B%0A%20%20%20%20%20%20%20%20for(byte%20i%20%3D%20&#39;%20&#39;%20%3B%20i%20%3C%20&#39;~&#39;%20%3Bi%2B%2B)%0A%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20rotation%5Bi%20-%20&#39;%20&#39;%5D%20%3D%20i%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20rotation%5Bi%20%2B%2095%20-%20&#39;%20&#39;%5D%20%3D%20i%20%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20ServerSocketChannel%20serverChannel%20%3D%20null%20%20%3B%0A%20%20%20%20%20%20%20%20Selector%20selector%20%3D%20null%3B%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%2F**%0A%20%20%20%20%20%20%20%20%20*%20%E5%85%88%E5%BB%BA%E7%AB%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9A%84%E9%80%9A%E9%81%93%0A%20%20%20%20%20%20%20%20%20*%20%0A%20%20%20%20%20%20%20%20%20*%2F%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20serverChannel%20%3D%20ServerSocketChannel.open()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20ServerSocket%20ss%20%3D%20serverChannel.socket()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20InetSocketAddress%20address%20%3D%20new%20InetSocketAddress(port)%20%3B%20%0A%20%20%20%20%20%20%20%20%20%20%20%20ss.bind(address)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20serverChannel.configureBlocking(false)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20selector%20%3D%20Selector.open()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20serverChannel.register(selector%2C%20SelectionKey.OP_ACCEPT)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%7D%20catch%20(IOException%20e)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20catch%20block%0A%20%20%20%20%20%20%20%20%20%20%20%20e.printStackTrace()%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20while(true)%0A%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20selector.select()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%20catch%20(IOException%20e)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20e.printStackTrace()%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20Set%20readyKeys%20%3D%20selector.selectedKeys()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20Iterator%20iter%20%3D%20readyKeys.iterator()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20while(iter.hasNext())%0A%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20SelectionKey%20key%20%3D%20(SelectionKey)%20iter.next()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20iter.remove()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if(key.isAcceptable())%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20ServerSocketChannel%20server%20%3D%20(ServerSocketChannel)%20key.channel()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20SocketChannel%20client%20%3D%20server.accept()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20System.out.println(%22Accept%20connection%20from%20%22%20%2B%20client)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20client.configureBlocking(false)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20SelectionKey%20key2%20%3D%20client.register(selector%2C%20SelectionKey.OP_WRITE)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20ByteBuffer%20buffer%20%3D%20ByteBuffer.allocate(74)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.put(rotation%20%2C%200%20%2C%2072)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.put((byte)&#39;%5Cr&#39;)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.put((byte)&#39;%5Cn&#39;)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.flip()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20key2.attach(buffer)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%20catch%20(IOException%20e)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20catch%20block%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20e.printStackTrace()%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20else%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if(key.isWritable())%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F**%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20*%20%E5%BB%BA%E7%AB%8B%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E9%81%93%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20*%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20*%2F%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20SocketChannel%20client%20%3D%20(SocketChannel)key.channel()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20ByteBuffer%20buffer%20%3D%20(ByteBuffer)%20key.attachment()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if(!buffer.hasRemaining())%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.rewind()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20int%20first%20%3D%20buffer.get()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.rewind()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20int%20position%20%3D%20first%20-%20&#39;%20&#39;%20%2B%201%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.put(rotation%20%2C%20position%20%2C%2072)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.put((byte)%20&#39;%5Cr&#39;)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.put((byte)%20&#39;%5Cn&#39;)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20buffer.flip()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20client.write(buffer)%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%20catch%20(IOException%20e)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20catch%20block%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20e.printStackTrace()%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20key.cancel()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20key.channel().close()%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%20catch%20(IOException%20e)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20TODO%20Auto-generated%20catch%20block%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20e.printStackTrace()%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%7D%0A%0A%7D%0A" quality="high" allowscriptaccess="always" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer">&nbsp;<a href="javascript:void()" title="收藏这段代码" onclick="code_favorites_do_favorite(this);return false;"><img class="star" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/icon_star.png" alt="收藏代码"><img class="spinner" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/spinner.gif" style="display:none"></a></div></div><ol start="1" class="dp-j"><li><span><span class="keyword">package</span><span>&nbsp;cn.bupt.channel;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;</span></li><li><span><span class="keyword">import</span><span>&nbsp;java.io.IOException;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.net.InetSocketAddress;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.net.SocketAddress;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.ByteBuffer;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.Channels;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.SocketChannel;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.WritableByteChannel;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;</span></li><li><span><span class="keyword">import</span><span>&nbsp;cn.bupt.constant.Default;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;</span></li><li><span><span class="keyword">public</span><span>&nbsp;</span><span class="keyword">class</span><span>&nbsp;ChargenClient&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span>&nbsp;</span><span class="keyword">static</span><span>&nbsp;</span><span class="keyword">int</span><span>&nbsp;DEFAULT_PORT&nbsp;=&nbsp;</span><span class="number">8778</span><span>&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">/**</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@param&nbsp;args</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span>&nbsp;</span><span class="keyword">static</span><span>&nbsp;</span><span class="keyword">void</span><span>&nbsp;main(String[]&nbsp;args)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;method&nbsp;stub</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span><span>(args.length&nbsp;==&nbsp;</span><span class="number">0</span><span>)&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(<span class="string">"please&nbsp;input&nbsp;the&nbsp;port"</span><span>);&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span><span>&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span><span>&nbsp;port&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;port&nbsp;=&nbsp;DEFAULT_PORT&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SocketAddress&nbsp;address&nbsp;=&nbsp;<span class="keyword">new</span><span>&nbsp;InetSocketAddress(args[</span><span class="number">0</span><span>]&nbsp;,&nbsp;port)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><span>&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SocketChannel&nbsp;client&nbsp;=&nbsp;SocketChannel.open(address)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ByteBuffer&nbsp;buffer&nbsp;=&nbsp;ByteBuffer.allocate(<span class="number">74</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WritableByteChannel&nbsp;out&nbsp;=&nbsp;Channels.newChannel(System.out)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">while</span><span>(client.read(buffer)&nbsp;!=&nbsp;-</span><span class="number">1</span><span>)&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.flip()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.write(buffer)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.clear()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;<span class="keyword">catch</span><span>&nbsp;(IOException&nbsp;e)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;catch&nbsp;block</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.printStackTrace();&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;</span></li><li><span>}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;（<span class="number">2</span><span>）&nbsp;服务器端&nbsp;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;</span></li><li><span><span class="keyword">package</span><span>&nbsp;cn.bupt.channel;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;</span></li><li><span><span class="keyword">import</span><span>&nbsp;java.io.IOException;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.net.InetSocketAddress;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.net.ServerSocket;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.ByteBuffer;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.SelectionKey;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.Selector;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.ServerSocketChannel;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.nio.channels.SocketChannel;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.util.Iterator;&nbsp;&nbsp;</span></span></li><li><span><span class="keyword">import</span><span>&nbsp;java.util.Set;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;</span></li><li><span><span class="keyword">public</span><span>&nbsp;</span><span class="keyword">class</span><span>&nbsp;ChargenServer&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span>&nbsp;</span><span class="keyword">static</span><span>&nbsp;</span><span class="keyword">final</span><span>&nbsp;</span><span class="keyword">int</span><span>&nbsp;DEFAULT_PORT&nbsp;=&nbsp;</span><span class="number">8778</span><span>&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">/**</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@param&nbsp;args</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span>&nbsp;</span><span class="keyword">static</span><span>&nbsp;</span><span class="keyword">void</span><span>&nbsp;main(String[]&nbsp;args)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;method&nbsp;stub</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span><span>&nbsp;port&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;port&nbsp;=&nbsp;DEFAULT_PORT&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">byte</span><span>[]&nbsp;rotation&nbsp;=&nbsp;</span><span class="keyword">new</span><span>&nbsp;</span><span class="keyword">byte</span><span>[</span><span class="number">95</span><span>&nbsp;*&nbsp;</span><span class="number">2</span><span>&nbsp;]&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span><span>(</span><span class="keyword">byte</span><span>&nbsp;i&nbsp;=&nbsp;</span><span class="string">'&nbsp;'</span><span>&nbsp;;&nbsp;i&nbsp;&lt;&nbsp;</span><span class="string">'~'</span><span>&nbsp;;i++)&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rotation[i&nbsp;-&nbsp;<span class="string">'&nbsp;'</span><span>]&nbsp;=&nbsp;i&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rotation[i&nbsp;+&nbsp;<span class="number">95</span><span>&nbsp;-&nbsp;</span><span class="string">'&nbsp;'</span><span>]&nbsp;=&nbsp;i&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ServerSocketChannel&nbsp;serverChannel&nbsp;=&nbsp;<span class="keyword">null</span><span>&nbsp;&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector&nbsp;selector&nbsp;=&nbsp;<span class="keyword">null</span><span>;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">/**</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;先建立服务器端的通道</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><span>&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;serverChannel&nbsp;=&nbsp;ServerSocketChannel.open()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ServerSocket&nbsp;ss&nbsp;=&nbsp;serverChannel.socket()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InetSocketAddress&nbsp;address&nbsp;=&nbsp;<span class="keyword">new</span><span>&nbsp;InetSocketAddress(port)&nbsp;;&nbsp;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ss.bind(address)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;serverChannel.configureBlocking(<span class="keyword">false</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;selector&nbsp;=&nbsp;Selector.open()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;serverChannel.register(selector,&nbsp;SelectionKey.OP_ACCEPT)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;<span class="keyword">catch</span><span>&nbsp;(IOException&nbsp;e)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;catch&nbsp;block</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.printStackTrace();&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">while</span><span>(</span><span class="keyword">true</span><span>)&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><span>&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;selector.select()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;<span class="keyword">catch</span><span>&nbsp;(IOException&nbsp;e)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.printStackTrace();&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;readyKeys&nbsp;=&nbsp;selector.selectedKeys()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator&nbsp;iter&nbsp;=&nbsp;readyKeys.iterator()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">while</span><span>(iter.hasNext())&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SelectionKey&nbsp;key&nbsp;=&nbsp;(SelectionKey)&nbsp;iter.next()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter.remove()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span><span>(key.isAcceptable())&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ServerSocketChannel&nbsp;server&nbsp;=&nbsp;(ServerSocketChannel)&nbsp;key.channel()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><span>&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SocketChannel&nbsp;client&nbsp;=&nbsp;server.accept()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(<span class="string">"Accept&nbsp;connection&nbsp;from&nbsp;"</span><span>&nbsp;+&nbsp;client)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;client.configureBlocking(<span class="keyword">false</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SelectionKey&nbsp;key2&nbsp;=&nbsp;client.register(selector,&nbsp;SelectionKey.OP_WRITE)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ByteBuffer&nbsp;buffer&nbsp;=&nbsp;ByteBuffer.allocate(<span class="number">74</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.put(rotation&nbsp;,&nbsp;<span class="number">0</span><span>&nbsp;,&nbsp;</span><span class="number">72</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.put((<span class="keyword">byte</span><span>)</span><span class="string">'\r'</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.put((<span class="keyword">byte</span><span>)</span><span class="string">'\n'</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.flip()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key2.attach(buffer)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;<span class="keyword">catch</span><span>&nbsp;(IOException&nbsp;e)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;catch&nbsp;block</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.printStackTrace();&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span><span>(key.isWritable())&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">/**</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;建立客户端通道</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;</span>&nbsp;</span></li><li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SocketChannel&nbsp;client&nbsp;=&nbsp;(SocketChannel)key.channel()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ByteBuffer&nbsp;buffer&nbsp;=&nbsp;(ByteBuffer)&nbsp;key.attachment()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span><span>(!buffer.hasRemaining())&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.rewind()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span><span>&nbsp;first&nbsp;=&nbsp;buffer.get()&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.rewind()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span><span>&nbsp;position&nbsp;=&nbsp;first&nbsp;-&nbsp;</span><span class="string">'&nbsp;'</span><span>&nbsp;+&nbsp;</span><span class="number">1</span><span>&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.put(rotation&nbsp;,&nbsp;position&nbsp;,&nbsp;<span class="number">72</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.put((<span class="keyword">byte</span><span>)&nbsp;</span><span class="string">'\r'</span><span>)&nbsp;;&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.put((<span class="keyword">byte</span><span>)&nbsp;</span><span class="string">'\n'</span><span>);&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.flip()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><span>&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;client.write(buffer)&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;<span class="keyword">catch</span><span>&nbsp;(IOException&nbsp;e)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;catch&nbsp;block</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.printStackTrace();&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key.cancel()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span><span>&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key.channel().close()&nbsp;;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;<span class="keyword">catch</span><span>&nbsp;(IOException&nbsp;e)&nbsp;{&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">//&nbsp;TODO&nbsp;Auto-generated&nbsp;catch&nbsp;block</span><span>&nbsp;&nbsp;</span></span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.printStackTrace();&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;</span></li><li><span>}&nbsp;&nbsp;</span></li></ol></div><pre name="code" class="java" style="display: none; " codeable_id="927376" codeable_type="Blog" source_url="http://jasonshieh.iteye.com/blog/927376" pre_index="0" title="java socket非阻塞I/O 详解">package cn.bupt.channel;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
+
+import cn.bupt.constant.Default;
+
+public class ChargenClient {
+
+    public static int DEFAULT_PORT = 8778 ;
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        // TODO Auto-generated method stub
+       if(args.length == 0)
+       {
+           System.out.println("please input the port");
+           return ;
+       }
+       
+       int port ;
+       
+       
+       port = DEFAULT_PORT ;
+       
+       SocketAddress address = new InetSocketAddress(args[0] , port) ;
+       try {
+        SocketChannel client = SocketChannel.open(address) ;
+        ByteBuffer buffer = ByteBuffer.allocate(74) ;
+        WritableByteChannel out = Channels.newChannel(System.out) ;
+        
+        while(client.read(buffer) != -1)
+        {
+            buffer.flip() ;
+            out.write(buffer) ;
+            buffer.clear() ;
+            
+        }
+        
+        
+        
+        
+        
+        
+    } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+    }
+       
+       
+        
+    }
+
+}
+
+
+      
+   （2） 服务器端 
+        
+
+package cn.bupt.channel;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Set;
+
+public class ChargenServer {
+ 
+    public static final int DEFAULT_PORT = 8778 ;
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        // TODO Auto-generated method stub
+        int port ;
+        port = DEFAULT_PORT ;
+        
+        byte[] rotation = new byte[95 * 2 ] ;
+        for(byte i = ' ' ; i &lt; '~' ;i++)
+        {
+            rotation[i - ' '] = i ;
+            rotation[i + 95 - ' '] = i ;
+        }
+        
+        ServerSocketChannel serverChannel = null  ;
+        Selector selector = null;
+        
+        
+        /**
+         * 先建立服务器端的通道
+         * 
+         */
+        
+        try {
+            serverChannel = ServerSocketChannel.open() ;
+            ServerSocket ss = serverChannel.socket() ;
+            InetSocketAddress address = new InetSocketAddress(port) ; 
+            ss.bind(address) ;
+            serverChannel.configureBlocking(false) ;
+            selector = Selector.open() ;
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT) ;
+            
+            
+        
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+        
+        while(true)
+        {
+            
+            try {
+                selector.select() ;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            
+            Set readyKeys = selector.selectedKeys() ;
+            Iterator iter = readyKeys.iterator() ;
+            while(iter.hasNext())
+            {
+                SelectionKey key = (SelectionKey) iter.next() ;
+                iter.remove() ;
+                
+                if(key.isAcceptable())
+                {
+                    ServerSocketChannel server = (ServerSocketChannel) key.channel() ;
+                     try {
+                         SocketChannel client = server.accept() ;
+                         System.out.println("Accept connection from " + client) ;
+                        client.configureBlocking(false) ;
+                        SelectionKey key2 = client.register(selector, SelectionKey.OP_WRITE) ;
+                        ByteBuffer buffer = ByteBuffer.allocate(74) ;
+                        buffer.put(rotation , 0 , 72) ;
+                        buffer.put((byte)'\r') ;
+                        buffer.put((byte)'\n') ;
+                        buffer.flip() ;
+                        key2.attach(buffer) ;
+                        
+                        
+                        
+                        
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    
+                    
+                    
+                    
+                }
+                
+                else
+                    if(key.isWritable())
+                    {
+                        
+                        /**
+                         * 建立客户端通道
+                         * 
+                         */
+                        SocketChannel client = (SocketChannel)key.channel() ;
+                        ByteBuffer buffer = (ByteBuffer) key.attachment() ;
+                        if(!buffer.hasRemaining())
+                        {
+                            buffer.rewind() ;
+                            int first = buffer.get() ;
+                            buffer.rewind() ;
+                            int position = first - ' ' + 1 ;
+                            buffer.put(rotation , position , 72) ;
+                            buffer.put((byte) '\r') ;
+                            buffer.put((byte) '\n');
+                            buffer.flip() ;
+                        }
+                        try {
+                            client.write(buffer) ;
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    
+                    
+                    
+                
+                
+                
+                
+                
+                key.cancel() ;
+                try {
+                    key.channel().close() ;
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            
+        
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    }
+
+}
+</pre>
+  </div>
+
+  
+
+
+  <div>
+      <script type="text/javascript"><!--
+      google_ad_client = "ca-pub-7775868915498600";
+      google_ad_slot = "2900675642";
+      google_ad_width = 728;
+      google_ad_height = 90;
+      //--></script>
+      <script type="text/javascript" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/show_ads.js">
+      </script><ins id="aswift_0_expand" style="display:inline-table;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:728px;background-color:transparent"><ins id="aswift_0_anchor" style="display:block;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:728px;background-color:transparent"><iframe width="728" height="90" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" allowfullscreen="true" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){try{h=s.upd(h,i)}catch(e){}w.location.replace(h)}}" id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;"></iframe></ins></ins>
+    </div>
+  
+  <div id="bottoms" class="clearfix">
+    
+    <div id="share_weibo">分享到：
+      <a data-type="sina" href="javascript:;" title="分享到新浪微博"><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/sina.jpg"></a>
+      <a data-type="qq" href="javascript:;" title="分享到腾讯微博"><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/tec.jpg"></a>
+    </div>
+  </div>
+
+  <div class="blog_nav">
+    <div class="pre_next">
+      <a href="http://jasonshieh.iteye.com/blog/933309" class="next" title="JAVA调用C程序----认识理解Java中native方法，实现底层调用">JAVA调用C程序----认识理解Java中native方 ...</a>
+      |
+      <a href="http://jasonshieh.iteye.com/blog/917118" class="pre" title="java socket非阻塞通讯概论">java socket非阻塞通讯概论</a>
+    </div>
+  </div>
+  <div class="blog_bottom">
+    <ul>
+      <li>2011-02-25 10:40</li>
+      <li>浏览 5793</li>
+      <li><a href="http://jasonshieh.iteye.com/blog/927376#comments">评论(0)</a></li>
+      
+      
+      <li>分类:<a href="http://www.iteye.com/blogs/category/language">编程语言</a></li>      
+      <li class="last"><a href="http://www.iteye.com/wiki/blog/927376" target="_blank" class="more">相关推荐</a></li>
+    </ul>
+  </div>
+
+  <div class="blog_comment">
+    <h5>评论</h5>
+    <a id="comments" name="comments"></a>
+    
+    
+    
+  </div>
+
+  <div class="blog_comment">
+    <h5>发表评论</h5>
+            <p style="text-align:center; margin-top:30px;margin-bottom:0px;"><a href="http://jasonshieh.iteye.com/login" style="background-color:white;"> <img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/login_icon.png" style="vertical-align:middle; margin-right: 10px;"></a><a href="http://jasonshieh.iteye.com/login">  您还没有登录,请您登录后再发表评论 </a></p>
+      </div>
+</div>
+
+
+<script type="text/javascript">
+  dp.SyntaxHighlighter.HighlightAll('code', true, true);
+
+  $$('#main .blog_content pre[name=code]').each(function(pre, index){ // blog content
+    var post_id = 927376;
+    var location = window.location;
+    source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+    pre.writeAttribute('codeable_id', post_id);
+    pre.writeAttribute('codeable_type', "Blog");
+    pre.writeAttribute('source_url', source_url);
+    pre.writeAttribute('pre_index', index);
+    pre.writeAttribute('title', 'java socket非阻塞I/O 详解');
+  });
+
+  fix_image_size($$('div.blog_content img'), 700);
+
+  function processComment() {
+    $$('#main .blog_comment > div').each(function(comment){// comment
+      var post_id = comment.id.substr(2);
+      $$("#"+comment.id+" pre[name=code]").each(function(pre, index){
+        var location = window.location;
+        source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+        source_url += "#" + comment.id;
+        pre.writeAttribute('codeable_id', post_id);
+        pre.writeAttribute('codeable_type', "BlogComment");
+        pre.writeAttribute('source_url', source_url);
+        pre.writeAttribute('pre_index', index);
+        pre.writeAttribute('title', 'java socket非阻塞I/O 详解');
+      });
+    });
+  }
+
+  function quote_comment(id) {
+    new Ajax.Request('/editor/quote', {
+      parameters: {'id':id, 'type':'BlogComment'},
+      onSuccess:function(response){editor.bbcode_editor.textarea.insertAfterSelection(response.responseText);
+        Element.scrollTo(editor.bbcode_editor.textarea.element);}
+    });
+  }
+
+  code_favorites_init();
+  processComment();
+  new WeiboShare({share_buttons: $('share_weibo'), img_scope: $('blog_content')});
+</script>
+
+
+
+
+        </div>
+
+        <div id="local">
+          <div class="local_top"></div>
+          <div id="blog_owner">
+  <div id="blog_owner_logo"><a href="http://jasonshieh.iteye.com/"><img alt="JasonShieh的博客" class="logo" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/cd66728d-c627-3b6d-a309-bc6354045751.jpg" title="JasonShieh的博客: Jasonshieh" width=""></a></div>
+  <div id="blog_owner_name">JasonShieh</div>
+</div>
+
+          <div id="blog_actions">
+            <ul>
+              <li>浏览: 169704 次</li>
+              <li>性别: <img alt="Icon_minigender_1" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/icon_minigender_1.gif" title="男"></li>
+              <li>来自: 上海</li>
+              <li><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/offline.gif"></li>
+              
+            </ul>
+          </div>
+          <div id="user_visits" class="clearfix">
+            <h5>最近访客 <span style="font-weight:normal;font-size:12px;padding-left:30px;"><a href="http://jasonshieh.iteye.com/blog/user_visits">更多访客&gt;&gt;</a></span></h5>
+            
+              <div class="user_visit">
+                <div class="logo"><a href="http://104zz.iteye.com/" target="_blank"><img alt="104zz的博客" class="logo" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/16a2fc0b-d723-36a3-8aa3-70ce2150eb6d-thumb.jpg" title="104zz的博客: 机遇&amp;速度" width="48px"></a></div>
+                <div class="left"><a href="http://104zz.iteye.com/" target="_blank" title="104zz">104zz</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href="http://kerlang.iteye.com/" target="_blank"><img alt="kerlang的博客" class="logo" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/user-logo-thumb.gif" title="kerlang的博客: kerlang" width="48px"></a></div>
+                <div class="left"><a href="http://kerlang.iteye.com/" target="_blank" title="kerlang">kerlang</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href="http://dylinshi126.iteye.com/" target="_blank"><img alt="dylinshi126的博客" class="logo" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/user-logo-thumb.gif" title="dylinshi126的博客: " width="48px"></a></div>
+                <div class="left"><a href="http://dylinshi126.iteye.com/" target="_blank" title="dylinshi126">dylinshi126</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href="http://xjf975999.iteye.com/" target="_blank"><img alt="xjf975999的博客" class="logo" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/user-logo-thumb.gif" title="xjf975999的博客: " width="48px"></a></div>
+                <div class="left"><a href="http://xjf975999.iteye.com/" target="_blank" title="xjf975999">xjf975999</a></div>
+              </div>
+            
+          </div>
+
+          
+
+                      <div id="blog_menu">
+              <h5>文章分类</h5>
+              <ul>
+                <li><a href="http://jasonshieh.iteye.com/">全部博客 (136)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/114198">JAVA (44)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/114199">Android (61)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/136272">Linux (20)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/146262">技术与人文 (3)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/153040">C# (5)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/153498">DB (2)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/229561">Objective-C (6)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/244298">C/C++ (7)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/290768">WEB (2)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/306697">JNI (2)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/307817">正则表达式 (1)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/308958">ios (2)</a></li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/category/310883">iphone (1)</a></li>
+                
+              </ul>
+            </div>
+            <div id="month_blogs">
+              <h5>社区版块</h5>
+              <ul>
+                <li><a href="http://jasonshieh.iteye.com/blog/news">我的资讯</a> (0)</li>
+                <li>
+                  <a href="http://jasonshieh.iteye.com/blog/post">我的论坛</a> (11)
+                </li>
+                <li><a href="http://jasonshieh.iteye.com/blog/answered_problems">我的问答</a> (2)</li>
+              </ul>
+            </div>
+            <div id="month_blogs">
+              <h5>存档分类</h5>
+              <ul>
+                
+                  <li><a href="http://jasonshieh.iteye.com/blog/monthblog/2014-05">2014-05</a> (1)</li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/blog/monthblog/2014-04">2014-04</a> (2)</li>
+                
+                  <li><a href="http://jasonshieh.iteye.com/blog/monthblog/2014-03">2014-03</a> (4)</li>
+                
+                <li><a href="http://jasonshieh.iteye.com/blog/monthblog_more">更多存档...</a></li>
+              </ul>
+            </div>
+            
+            
+              <div id="comments_top">
+                <h5>评论排行榜</h5>
+                <ul>
+                  
+                    <li><a href="http://jasonshieh.iteye.com/blog/1972131" title="Android RadioGroup 换行, 支持多行多列">Android RadioGroup 换行, 支持多行多列</a></li>
+                  
+                </ul>
+              </div>
+            
+
+            <div id="guest_books">
+              <h5>最新评论</h5>
+              <ul>
+                
+                <li>
+                  <a href="http://chaozhidan.iteye.com/" target="_blank" title="chaozhidan">chaozhidan</a>： 
+                  有木有源码啊，谢谢大神，646869341@qq.com<br>
+                  <a href="http://jasonshieh.iteye.com/blog/1972131#bc2355596">Android RadioGroup 换行, 支持多行多列</a>
+                </li>
+                
+                <li>
+                  <a href="http://wlmxj.iteye.com/" target="_blank" title="wlmxj">wlmxj</a>： 
+                  你好，版主知道怎么添加吗？你写的这是查询！<br>
+                  <a href="http://jasonshieh.iteye.com/blog/793537#bc2347840">Android联系人数据库全解析（1）</a>
+                </li>
+                
+                <li>
+                  <a href="http://shensens.iteye.com/" target="_blank" title="shensens">shensens</a>： 
+                  你好，按照你的布局，会报错的……我的环境是4.2。能否给个可运 ...<br>
+                  <a href="http://jasonshieh.iteye.com/blog/1972131#bc2347132">Android RadioGroup 换行, 支持多行多列</a>
+                </li>
+                
+                <li>
+                  <a href="http://flyingsir-zw.iteye.com/" target="_blank" title="flyingsir_zw">flyingsir_zw</a>： 
+                  &lt;pre name="code" c ...<br>
+                  <a href="http://jasonshieh.iteye.com/blog/751068#bc2343485">android实现双击事件监听</a>
+                </li>
+                
+                <li>
+                  <a href="http://jasonshieh.iteye.com/" target="_blank" title="JasonShieh">JasonShieh</a>： 
+                  harichen 写道harichen 写道你好，可以把布局文 ...<br>
+                  <a href="http://jasonshieh.iteye.com/blog/1972131#bc2335432">Android RadioGroup 换行, 支持多行多列</a>
+                </li>
+                
+              </ul>
+            </div>
+
+            <div class="local_bottom"></div>
+          
+        </div>
+      </div>
+
+      <div id="footer" class="clearfix">
+        <div id="copyright">
+          <hr>
+          声明：ITeye文章版权属于作者，受法律保护。没有作者书面许可不得转载。若作者同意转载，必须以超链接形式标明文章原始出处和作者。<br>
+          © 2003-2014 ITeye.com.   All rights reserved.  [ 京ICP证110151号  京公网安备110105010620 ]
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+  document.write("<img src='http://stat.iteye.com/?url="+ encodeURIComponent(document.location.href) + "&referrer=" + encodeURIComponent(document.referrer) + "&user_id=' width='0' height='0' />");
+</script><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/saved_resource" width="0" height="0">
+
+<script src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/tracking.js" type="text/javascript"></script>
+
+    
+<script type="text/javascript" src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/tongji.js"></script><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/tongji.do" border="0" width="1" height="1"><a href="http://tongji.linezing.com/report.html?unit_id=2640324" target="_blank"><img src="./java socket非阻塞I O 详解 - Jasonshieh - ITeye技术网站_files/stats.gif" border="0" alt="量子统计"></a>
+      
+    
+  
+
+</body></html>

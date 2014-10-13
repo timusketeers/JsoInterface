@@ -1,0 +1,49 @@
+package com.howbuy.jso.service.network.node;
+
+/**
+ * 应用节点.
+ * @author li.zhang
+ * 2014-9-17
+ *
+ */
+public class AppNode
+{
+    /** 应用名称. **/
+    private String appName;
+    
+    /** 在哪台主机上部署. **/
+    private String hostName;
+    
+    /** 部署的端口. **/
+    private int port;
+
+    public String getAppName()
+    {
+        return appName;
+    }
+
+    public void setAppName(String appName)
+    {
+        this.appName = appName;
+    }
+
+    public String getHostName()
+    {
+        return hostName;
+    }
+
+    public void setHostName(String hostName)
+    {
+        this.hostName = hostName;
+    }
+
+    public int getPort()
+    {
+        return port;
+    }
+
+    public void setPort(int port)
+    {
+        this.port = port;
+    }
+}

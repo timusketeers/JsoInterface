@@ -1,0 +1,77 @@
+package com.howbuy.jso.service.queue;
+
+import java.io.OutputStream;
+import java.net.Socket;
+
+import com.howbuy.jso.service.queue.impl.QueueServiceImpl;
+import com.howbuy.jso.utils.serialize.Serializer;
+
+/**
+ * 队列中的消息的分发器，将队列中的消息分发到另一个应用.
+ * @author li.zhang
+ * 2014-9-16
+ *
+ */
+public class QueueMsgDispatcher extends Thread
+{
+    /** 标识线程是否运行.**/
+    private boolean running = true;
+    
+    /** 序列化和反序列化工具. **/
+    private Serializer serializer = new Serializer();
+    
+    /** socket连接. **/
+    private final Socket socket;
+    
+    /**
+     * 构造方法
+     */
+    public QueueMsgDispatcher(Socket socket)
+    {
+        //设置线程异常处理handle
+        setUncaughtExceptionHandler(new ThreadExceptionHandle());
+        
+        this.socket = socket;
+    }
+    
+    /**
+     * override
+     */
+    public void run()
+    {
+        QueueService queueService = new QueueServiceImpl();
+        
+        while (running)
+        {
+            try
+            {
+                Object obj = queueService.pop();
+                byte[] data = serializer.serialize(obj);
+                
+                dispatch(data);
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    private void dispatch(byte[] data) throws Exception
+    {
+        OutputStream output = socket.getOutputStream();
+        output.write(data);
+        output.flush();
+    }
+
+    /**
+     * 停止线程.
+     */
+    @SuppressWarnings("deprecation")
+    public void stopThread()
+    {
+        running = false;
+        
+        super.stop(new ThreadDeath());
+    }
+}

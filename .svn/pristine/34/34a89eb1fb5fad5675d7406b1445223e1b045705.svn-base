@@ -1,0 +1,124 @@
+package com.howbuy.jso.service.network.protocol;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 指令响应对应的实体.
+ * @author li.zhang
+ * 2014-9-22
+ *
+ */
+public class CmdResp
+{
+    /** 整个消息的长度. **/
+    private int header;
+    
+    /** 命令的标识.  **/
+    private short cmd;
+    
+    /** 表示序列. **/
+    private int seqId;
+    
+    /** 返回码. **/
+    private int retCode;
+    
+    /** 参数列表.**/
+    private Param[] params;
+    
+    /**
+     * 将对应的字节流转换成CmdResp对象.
+     * @param bytes
+     * @return
+     */
+    public static CmdResp fromByteStream(byte[] bytes)
+    {
+        CmdResp resp = new CmdResp();
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        buffer.rewind();
+        
+        int headerLen = buffer.getInt();
+        short cmd = buffer.getShort();
+        int seqId = buffer.getInt();
+        int retCode = buffer.getInt();
+        
+        Param param = null;
+        List<Param> params = new ArrayList<Param>();
+        while (0 < buffer.remaining())
+        {
+            param = new Param();
+            int paramHeaderLen = buffer.getInt();
+            byte[] data = new byte[paramHeaderLen];
+            buffer.get(data);
+            
+            param.setHeader(paramHeaderLen);
+            param.setData(data);
+            
+            params.add(param);
+        }
+        
+        resp.setHeader(headerLen);
+        resp.setCmd(cmd);
+        resp.setSeqId(seqId);
+        resp.setRetCode(retCode);
+        if (null != params && !params.isEmpty())
+        {
+            Param[] paramArray = new Param[params.size()];
+            params.toArray(paramArray);
+            resp.setParams(paramArray);
+        }
+        
+        return resp;
+    }
+
+    public int getHeader()
+    {
+        return header;
+    }
+
+    public void setHeader(int header)
+    {
+        this.header = header;
+    }
+
+    public short getCmd()
+    {
+        return cmd;
+    }
+
+    public void setCmd(short cmd)
+    {
+        this.cmd = cmd;
+    }
+
+    public int getSeqId()
+    {
+        return seqId;
+    }
+
+    public void setSeqId(int seqId)
+    {
+        this.seqId = seqId;
+    }
+
+    public int getRetCode()
+    {
+        return retCode;
+    }
+
+    public void setRetCode(int retCode)
+    {
+        this.retCode = retCode;
+    }
+
+    public Param[] getParams()
+    {
+        return params;
+    }
+
+    public void setParams(Param[] params)
+    {
+        this.params = params;
+    }
+}

@@ -1,0 +1,59 @@
+package com.howbuy.jso.service.processor;
+
+import java.io.IOException;
+import java.util.concurrent.Future;
+
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.MyNioClient;
+import com.howbuy.jso.service.network.future.ExceptionResultFuture;
+import com.howbuy.jso.service.network.protocol.CmdReq;
+import com.howbuy.network.entity.Result;
+
+public class HeartBeatProcessor implements IProcessor
+{
+    /**
+     * 逻辑处理.
+     * @param args args[0]:cmd
+     */
+    public Future<Result> process(String... args)
+    {
+        Future<Result> result = null;
+        
+        //1.参数检查
+        String cmd = args[0];
+        CmdEnum cmdEnum = CmdEnum.forName(cmd);
+        if (null == cmdEnum)
+        {
+            result = new ExceptionResultFuture();
+            return result;
+        }
+        
+        //2.构造命令请求流.
+        CmdReq req = new CmdReq();
+        req.setCmd(cmdEnum.getCommand());
+        
+        byte[] cmdMsg = req.toByteStream();
+        
+        //3.分发命令请求
+        result = dispatch(cmdMsg);
+        
+        return result;
+    }
+
+    private Future<Result> dispatch(byte[] cmdMsg)
+    {
+        Future<Result> result = null;
+
+        try
+        {
+            MyNioClient client = new MyNioClient(10001);
+            client.dispatch(cmdMsg);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        
+        return result;
+    }
+}

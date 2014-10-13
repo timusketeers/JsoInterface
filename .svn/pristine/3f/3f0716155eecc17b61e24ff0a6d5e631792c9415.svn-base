@@ -1,0 +1,142 @@
+package com.howbuy.jso.service.network.future;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.protocol.CmdResp;
+import com.howbuy.network.entity.Result;
+
+public class ResultFuture implements Future<Result>
+{   
+    /** key **/
+    private final SelectionKey key;
+    
+    /** selector **/
+    private final Selector selector;
+    
+    /** 标识任务是否已经结束. **/
+    private boolean done;
+    
+    /**
+     * 构造方法
+     * @param key
+     */
+    public ResultFuture(SelectionKey key)
+    {
+        this.key = key;
+        this.selector = key.selector();
+    }
+    
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning)
+    {
+        return false;
+    }
+
+    @Override
+    public boolean isCancelled()
+    {
+        return false;
+    }
+
+    @Override
+    public boolean isDone()
+    {
+        while (true)
+        {
+            try
+            {
+                int count = selector.selectNow();
+                if (0 >= count)
+                {
+                    continue;
+                }
+                
+                //1.判断当前key是否处于就绪状态.
+                Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+                while (iterator.hasNext())
+                {
+                    SelectionKey selectionKey = iterator.next();
+                    if (selectionKey == key)
+                    {
+                        break;
+                    }
+                }
+                
+                if (key.isReadable())
+                {
+                    doRead(key);
+                }
+                
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+            
+            break;
+        }
+        
+        return done;
+    }
+
+    @Override
+    public Result get() throws InterruptedException, ExecutionException
+    {
+        return null;
+    }
+
+    @Override
+    public Result get(long timeout, TimeUnit unit) throws InterruptedException,
+        ExecutionException, TimeoutException
+    {
+        return null;
+    }
+    
+    //渠道读就绪
+    private void doRead(SelectionKey key)
+    {
+        System.out.println("doRead...");
+        SocketChannel channel = (SocketChannel)key.channel();
+        ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
+        
+        try
+        {
+            while (channel.read(buffer) > 0);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return;
+        }
+        
+        buffer.flip();
+        byte[] rspData = new byte[buffer.limit()];
+        buffer.get(rspData);
+        
+        CmdResp resp = CmdResp.fromByteStream(rspData);
+        switch (CmdEnum.forCommand(resp.getCmd()))
+        {
+            case CLEAR_ACK:
+                System.out.println("成功收到clearAck响应.");
+                break;
+                
+            case CLEAR_DIS_ACK:
+                System.out.println("成功收到clearDisAck响应.");
+                break;
+                
+            case CLEAR_DIS_ACK_DTL:
+                System.out.println("成功收到clearDisAckDtl响应.");
+                break;
+        }
+    }
+
+}

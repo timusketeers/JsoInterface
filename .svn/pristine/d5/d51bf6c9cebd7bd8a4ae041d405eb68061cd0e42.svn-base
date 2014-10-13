@@ -1,0 +1,13 @@
+package com.howbuy.jso.service.network;
+
+import com.howbuy.jso.service.CmdEnum;
+
+public class JsoExecutorTest
+{
+    public static void main(String[] args)
+    {
+        JsoExecutor.getInstance().execute(CmdEnum.CLEAR_DIS_ACK.getName(), "taCode");
+        
+        while (true);
+    }
+}

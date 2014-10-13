@@ -1,0 +1,21 @@
+package com.howbuy.jso.service.network;
+
+import com.howbuy.jso.service.network.host.Host;
+
+public class HostSelectorTest
+{
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args)
+    {
+        HostSelector selector = HostSelector.getInstance();
+        Host host = selector.selectSingle();
+        System.out.println(host);
+        
+        
+        while (true);
+    }
+
+}

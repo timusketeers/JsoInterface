@@ -1,0 +1,57 @@
+package com.howbuy.jso.service.processor;
+
+import java.util.concurrent.Future;
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.future.ExceptionResultFuture;
+import com.howbuy.jso.service.network.protocol.CmdReq;
+import com.howbuy.jso.service.network.protocol.Param;
+import com.howbuy.network.entity.Result;
+
+public class ClearDisAckProcessor implements IProcessor
+{
+    /**
+     * 逻辑处理.
+     * @param args
+     */
+    public Future<Result> process(String... args)
+    {
+        Future<Result> result = null;
+        
+        //1.参数检查
+        String cmd = args[0];
+        CmdEnum cmdEnum = CmdEnum.forName(cmd);
+        if (null == cmdEnum)
+        {
+            result = new ExceptionResultFuture();
+            return result;
+        }
+        
+        if (2 != args.length)
+        {
+            result = new ExceptionResultFuture();
+            return result;
+        }
+        
+        //2.构造命令请求流.
+        String taCode = args[1];
+        CmdReq req = new CmdReq();
+        req.setCmd(cmdEnum.getCommand());
+        Param[] params = new Param[1];
+        params[0] = new Param();
+        params[0].setData(taCode.getBytes());
+        
+        byte[] cmdMsg = req.toByteStream();
+        
+        //3.分发命令请求
+        result = dispatch(cmdMsg);
+        
+        return result;
+    }
+
+    private Future<Result> dispatch(byte[] cmdMsg)
+    {
+        Future<Result> result = null;
+        
+        return result;
+    }
+}

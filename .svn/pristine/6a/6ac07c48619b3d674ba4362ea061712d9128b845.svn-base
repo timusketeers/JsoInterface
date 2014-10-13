@@ -1,0 +1,9 @@
+package com.howbuy.jso.service.network;
+
+public class SequenceIdGenerator
+{
+    public static int nextSeqId()
+    {
+        return 0;
+    }
+}

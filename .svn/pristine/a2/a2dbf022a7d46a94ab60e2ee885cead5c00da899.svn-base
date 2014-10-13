@@ -1,0 +1,52 @@
+package com.howbuy.jso.service.network.attachment;
+
+import com.howbuy.jso.service.queue.NioQueue;
+import com.howbuy.network.entity.Result;
+
+/**
+ * 附件
+ * @author li.zhang
+ * 2014-9-24
+ *
+ */
+public class Attachment
+{
+    /** 心跳队列. **/
+    private NioQueue heartbeatQueue = new NioQueue();
+    
+    /** 业务请求指令队列. **/
+    private NioQueue queue = new NioQueue();
+    
+    /** 执行结果. **/
+    private Result result;
+
+    public NioQueue getHeartbeatQueue()
+    {
+        return heartbeatQueue;
+    }
+
+    public void setHeartbeatQueue(NioQueue heartbeatQueue)
+    {
+        this.heartbeatQueue = heartbeatQueue;
+    }
+
+    public NioQueue getQueue()
+    {
+        return queue;
+    }
+
+    public void setQueue(NioQueue queue)
+    {
+        this.queue = queue;
+    }
+
+    public Result getResult()
+    {
+        return result;
+    }
+
+    public void setResult(Result result)
+    {
+        this.result = result;
+    }
+}

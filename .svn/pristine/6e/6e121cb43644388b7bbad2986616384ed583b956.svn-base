@@ -1,0 +1,19 @@
+package com.howbuy.jso.service.network;
+
+import java.util.concurrent.Future;
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.network.entity.Result;
+
+public class JsoExecutorTest
+{
+    public static void main(String[] args) throws Exception
+    {
+        Future<Result> result = JsoExecutor.getInstance().execute(
+                CmdEnum.CLEAR_DIS_ACK.getName(), 
+                "taCode");
+        
+        Result rs = result.get();
+        System.out.println(rs);
+        while (true);
+    }
+}

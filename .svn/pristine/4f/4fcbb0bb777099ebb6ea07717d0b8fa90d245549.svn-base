@@ -1,0 +1,59 @@
+package com.howbuy.jso.service.network.thread.task;
+
+import java.nio.channels.SelectionKey;
+import java.util.concurrent.Future;
+
+import com.howbuy.jso.service.network.HostSelector;
+import com.howbuy.jso.service.network.attachment.Attachment;
+import com.howbuy.jso.service.network.future.ExceptionResultFuture;
+import com.howbuy.jso.service.network.future.ResultFuture;
+import com.howbuy.jso.service.network.protocol.CmdReq;
+import com.howbuy.network.entity.Result;
+
+public class FutureTask implements Task
+{
+    private CmdReq cmdReq;
+    
+    /**
+     * 构造方法.
+     * @param cmdReq 业务执行指令
+     */
+    public FutureTask(CmdReq cmdReq)
+    {
+        this.cmdReq = cmdReq;
+    }
+    
+    @Override
+    public Future<Result> submit()
+    {
+        Future<Result> result = null;
+        HostSelector selector = HostSelector.getInstance();
+        SelectionKey selectionKey = selector.selectSingle();
+        if (null == selectionKey)
+        {
+            //从服务器列表中每次选择一个重试连接,直到获得连接, 重试连接次数5次
+            for (int i = 0; i < 5; i++)
+            {
+                selectionKey = selector.selectSingle();
+                if (null != selectionKey)
+                {
+                    break;
+                }
+            }
+        }
+        
+        if (null == selectionKey)
+        {
+            result = new ExceptionResultFuture("0999", "There is no server reachable...");
+            return result;
+        }
+       
+        result = new ResultFuture(selectionKey);
+        
+        Attachment attachment = (Attachment)selectionKey.attachment();
+        attachment.setCmdReq(cmdReq);
+        
+        return null;
+    }
+
+}

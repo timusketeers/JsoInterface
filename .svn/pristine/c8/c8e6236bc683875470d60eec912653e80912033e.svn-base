@@ -1,0 +1,19 @@
+package com.howbuy.jso.service.processor;
+
+import java.util.concurrent.Future;
+
+import com.howbuy.network.entity.Result;
+
+public class ClearDisAckProcessor implements IProcessor
+{
+    /**
+     * 逻辑处理.
+     * @param args
+     */
+    public Future<Result> process(String... args)
+    {
+        Future<Result> result = null;
+        
+        return result;
+    }
+}

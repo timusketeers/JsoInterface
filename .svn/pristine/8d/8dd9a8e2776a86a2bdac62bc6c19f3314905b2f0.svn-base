@@ -1,0 +1,80 @@
+package com.howbuy.jso.service.network.thread.task;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.util.LinkedList;
+import java.util.concurrent.Future;
+
+import com.howbuy.network.entity.Result;
+
+/**
+ * 写任务.
+ * @author li.zhang
+ * 2014-9-22
+ *
+ */
+public class WriteTask implements Task
+{
+    private SelectionKey key;
+    
+    /**
+     * 构造方法
+     * @param key
+     */
+    public WriteTask(SelectionKey key)
+    {
+        this.key = key;
+    }
+    
+    @Override
+    public Future<Result> submit()
+    {
+        doWrite(key);
+        return null;
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void doWrite(SelectionKey key)
+    {
+        SocketChannel sc = (SocketChannel)key.channel();
+        LinkedList<ByteBuffer> outseq = (LinkedList<ByteBuffer>)key.attachment();
+        ByteBuffer bb = outseq.poll();
+        if (bb == null)
+        {
+            return;
+        }
+        
+        try
+        {
+            while (bb.hasRemaining())
+            {
+                sc.write(bb);
+            }
+        }
+        catch (IOException e)
+        {
+            disconnect(key);
+            e.printStackTrace();
+        }
+        
+        if (outseq.size() == 0)
+        {
+            System.out.println("after all buffers wrote, unregister OP_WRITE from interestOps");
+            key.interestOps(SelectionKey.OP_READ);
+        }
+    }
+
+    private void disconnect(SelectionKey key)
+    {
+        try
+        {
+            key.channel().close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+}

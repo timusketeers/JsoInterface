@@ -1,0 +1,44 @@
+package com.howbuy.jso.service.network;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.host.Host;
+import com.howbuy.jso.service.network.protocol.CmdReq;
+import com.howbuy.jso.service.queue.NioQueue;
+
+public class HostSelectorTest
+{
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args)
+    {
+        HostSelector selector = HostSelector.getInstance();
+        
+        Host host01 = selector.selectSingle();
+        Host host02 = selector.selectSingle();
+        Host host03 = selector.selectSingle();
+        Host host04 = selector.selectSingle();
+        Host host05 = selector.selectSingle();
+        System.out.println(host01.getPort());
+        System.out.println(host02.getPort());
+        System.out.println(host03.getPort());
+        System.out.println(host04.getPort());
+        System.out.println(host05.getPort());
+        
+        String key = host01.getIp() + "_" + host01.getPort();
+        SelectionKey selectionKey = selector.querySelectionKey(key);
+        NioQueue queue = (NioQueue)selectionKey.attachment();
+        
+        CmdReq req = new CmdReq();
+        req.setCmd(CmdEnum.CLEAR_DIS_ACK.getCommand());
+        ByteBuffer buffer = ByteBuffer.wrap(req.toByteStream());
+        queue.offer(buffer);
+        
+        while (true);
+    }
+
+}

@@ -1,0 +1,70 @@
+package com.howbuy.jso.service.network;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Set;
+
+import com.howbuy.jso.service.network.host.Host;
+
+/**
+ * 渠道重连任务.
+ * @author li.zhang
+ * 2014-9-23
+ *
+ */
+public class ChannelReconnectTask implements Runnable
+{
+    /** hostSelector **/
+    private final HostSelector hostSelector;
+    
+    /** selector **/
+    private final Selector selector;
+    
+    /**
+     * 构造方法
+     * @param hostSelector
+     */
+    public ChannelReconnectTask(HostSelector hostSelector)
+    {
+        this.hostSelector = hostSelector;
+        this.selector = hostSelector.getSelector();
+    }
+    
+    @Override
+    public void run()
+    {
+        while (true)
+        {
+            Set<Host> hosts = hostSelector.getCancelledHosts();
+            if (null == hosts || hosts.isEmpty())
+            {
+                continue;
+            }
+            
+            Iterator<Host> iterator = hosts.iterator();
+            while (iterator.hasNext())
+            {
+                Host host = iterator.next();
+                SocketChannel channel = null;
+                try
+                {
+                    channel = SocketChannel.open();
+                    channel.configureBlocking(false);
+                    channel.connect(new InetSocketAddress(host.getIp(), host.getPort()));
+                    
+                    SelectionKey key = channel.register(selector, SelectionKey.OP_CONNECT);
+                    hostSelector.getRegistry().put(host.getIp() + "_" + host.getPort(), key);
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+}

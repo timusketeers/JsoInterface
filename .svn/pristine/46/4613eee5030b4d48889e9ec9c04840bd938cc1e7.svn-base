@@ -1,0 +1,37 @@
+package com.howbuy.jso.service.network.thread;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.LinkedList;
+import java.util.Vector;
+
+public class UserInteractive implements Runnable
+{
+    private static final int BUFFERSIZE = 1024 * 10;
+    private Selector selector;
+    private SelectionKey key;
+    
+    /** 消息队列. **/
+    private Vector<byte[]> msgQueue = new Vector<byte[]>();
+
+    public UserInteractive(Selector sel, SelectionKey key)
+    {
+        this.key = key;
+        this.selector = sel;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void run()
+    {
+        LinkedList<ByteBuffer> outseq = (LinkedList<ByteBuffer>)key.attachment();
+        while (true)
+        {
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFERSIZE);
+            buffer = ByteBuffer.wrap(msgQueue.remove(0));
+            outseq.offer(buffer);
+            key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            selector.wakeup();
+        }
+    }
+}

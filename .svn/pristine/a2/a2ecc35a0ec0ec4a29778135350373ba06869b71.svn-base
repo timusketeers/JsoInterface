@@ -1,0 +1,37 @@
+package com.howbuy.jso.service.network.registry;
+
+import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 连接信息注册表.
+ * @author li.zhang
+ * 2014-9-17
+ *
+ */
+public class ConnRegistry
+{
+    /** INSTANCE. **/
+    private static final ConnRegistry INSTANCE = new ConnRegistry();
+    
+    /** key为hostname_port, value为对应的socket连接. **/
+    private Map<String, Socket> connMap = new HashMap<String, Socket>();
+    
+    /**
+     * 私有构造方法
+     */
+    private ConnRegistry()
+    {
+        
+    }
+    
+    /**
+     * 返回实例.
+     * @return
+     */
+    public static ConnRegistry getInstance()
+    {
+        return INSTANCE;
+    }
+}

@@ -1,0 +1,81 @@
+package com.howbuy.jso.service.network;
+
+import java.util.concurrent.Future;
+
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.future.ExceptionResultFuture;
+import com.howbuy.network.entity.Result;
+
+/**
+ * JsoExecutor
+ * @author li.zhang
+ * 2014-9-18
+ *
+ */
+public class JsoExecutor
+{
+    /** INSTANCE **/
+    private static final JsoExecutor INSTANCE = new JsoExecutor();
+    
+    /** 消息收发器. **/
+    private Transceiver transceiver;
+    
+    /**
+     * 私有构造方法.
+     */
+    private JsoExecutor()
+    {
+        
+    }
+    
+    /**
+     * 获取实例.
+     * @return
+     */
+    public static JsoExecutor getInstance()
+    {
+        return INSTANCE;
+    }
+    
+    /**
+     * 执行入口.
+     * @param args args[0]:cmd, arg[1]:taCode
+     * @return
+     */
+    public Future<Result> execute(String... args)
+    {
+        Future<Result> result = null;
+        if (null == args || 0 == args.length)
+        {
+            result = new ExceptionResultFuture();
+            return result;
+        }
+        
+        String cmd = args[0];
+        switch (CmdEnum.forName(cmd))
+        {
+            case CLEAR_DIS_ACK:
+                
+                break;
+                
+            case CLEAR_ACK:
+                
+                break;
+                
+            case CLEAR_DIS_ACK_DTL:
+                
+                break;
+    
+            default:
+                result = new ExceptionResultFuture();
+                break;
+        }
+        
+        return result;
+    }
+
+    public Transceiver getTransceiver()
+    {
+        return transceiver;
+    }
+}

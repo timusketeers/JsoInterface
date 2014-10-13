@@ -1,0 +1,144 @@
+package com.howbuy.jso.service.network.sender;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Scanner;
+
+
+/**
+ * 消息发送者.
+ * @author li.zhang
+ * 2014-9-18
+ *
+ */
+public class RequestSender
+{
+    private Selector selector;
+    
+    private SocketChannel channel;
+    
+    public RequestSender()
+    {
+        init();
+    }
+    
+    private void init()
+    {
+        String hostname = "127.0.0.1";
+        int port = 9090;
+        SocketAddress remote = new InetSocketAddress(hostname, port);
+        try
+        {
+            selector = Selector.open();
+            channel = SocketChannel.open(remote);
+            channel.configureBlocking(false);//使用非阻塞模式.
+            
+            //注册channel该渠道感兴趣的事件.
+            channel.register(selector, SelectionKey.OP_CONNECT);
+            
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendMessage(String... args)
+    {
+        //开启客户端写线程.
+        new ClientWriteThread(selector, args).start();
+    }
+    
+    public static void main(String[] args)
+    {
+        RequestSender sender = new RequestSender();
+        
+        sender.sendMessage();
+    }
+    
+}
+
+/**
+ * 客户端写线程.
+ * @author li.zhang
+ * 2014-9-18
+ *
+ */
+class ClientWriteThread extends Thread
+{
+    /** args **/
+    private String[] args;
+    
+    /** selector **/
+    private Selector selector;
+    
+    /**
+     * 线程.
+     * @param selector selector
+     * @param args 参数列表
+     */
+    public ClientWriteThread(Selector selector, String... args)
+    {
+        this.selector = selector;
+        this.args = args;
+    }
+    
+    public void run()
+    {
+        while(true)
+        {
+            try
+            {
+                if (selector.select() <= 0)
+                {
+                    continue;
+                }
+                
+                Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+                while (iterator.hasNext())
+                {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
+                    
+                    if (key.isConnectable())
+                    {
+                        SocketChannel client = (SocketChannel)key.channel();
+                        client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                        client.finishConnect();
+                    }
+                    else if (key.isReadable())
+                    {
+                        ByteBuffer buffer = ByteBuffer.allocate(1024);
+                        SocketChannel client = (SocketChannel)key.channel();
+
+                        while ((client.read(buffer)) != 0);
+                        buffer.flip();
+                        
+                        byte[] dst = new byte[buffer.limit()];
+                        buffer.get(dst);
+
+                        System.out.println(new String(dst));
+                    }
+                    else if (key.isWritable())
+                    {
+                        SocketChannel client = (SocketChannel)key.channel();
+                        ByteBuffer buffer = ByteBuffer.allocate(100);
+                        buffer.put("client say hello world".getBytes());
+                        buffer.flip();
+                        client.write(buffer);
+                    }
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+}

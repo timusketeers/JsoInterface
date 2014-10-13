@@ -1,0 +1,58 @@
+package com.howbuy.jso.service.network.stream;
+
+public class Consts
+{
+    public final static int EOF_ = -1;
+    public final static int RATIO_LEN = 3;
+    public final static byte ZlibTag = 0x01;
+    public final static byte NotZlibTag = 0x00;
+    public final static int THRESHOLD = 4096;
+    public final static int BINARY_PACKLEN_LEN_2 = 4;
+    public final static int CHECKSUM_LEN = 2;
+    public final static int BINARY_PACKAGE_MAXLEN_2 = 0x10000000;
+
+    public static final int OBJECT_SHELL_SIZE = 8;
+    public static final int OBJREF_SIZE = 4;
+    public static final int LONG_FIELD_SIZE = 8;// JAVA is 8, C is 4
+    public static final int INT_FIELD_SIZE = 4;
+    public static final int SHORT_FIELD_SIZE = 2;
+    public static final int CHAR_FIELD_SIZE = 2;
+    public static final int BYTE_FIELD_SIZE = 1;
+    public static final int BOOLEAN_FIELD_SIZE = 1;
+    public static final int DOUBLE_FIELD_SIZE = 8;
+    public static final int FLOAT_FIELD_SIZE = 4;
+
+    public static final int MAXINTSPACE = 18;
+    public static final long base = 1;
+    public static final long[][] MAXDOUBLEVALUE = new long[][] {
+            new long[] { (base << 63 - 1) / 10, (-base << 63) / 10 },
+            new long[] { (base << 63 - 1) / 100, (-base << 63) / 100 },
+            new long[] { (base << 63 - 1) / 1000, (-base << 63) / 1000 },
+            new long[] { (base << 63 - 1) / 10000, (-base << 63) / 10000 },
+            new long[] { (base << 63 - 1) / 100000, (-base << 63) / 100000 },
+            new long[] { (base << 63 - 1) / 1000000, (-base << 63) / 1000000 },
+            new long[] { (base << 63 - 1) / 10000000, (-base << 63) / 10000000 },
+            new long[] { (base << 63 - 1) / 100000000,
+                    (-base << 63) / 100000000 },
+            new long[] { (base << 63 - 1) / 1000000000,
+                    (-base << 63) / 1000000000 },
+            new long[] { (base << 63 - 1) / 10000000000L,
+                    (-base << 63) / 10000000000L },
+            new long[] { (base << 63 - 1) / 100000000000L,
+                    (-base << 63) / 100000000000L },
+            new long[] { (base << 63 - 1) / 1000000000000L,
+                    (-base << 63) / 1000000000000L },
+            new long[] { (base << 63 - 1) / 10000000000000L,
+                    (-base << 63) / 10000000000000L },
+            new long[] { (base << 63 - 1) / 100000000000000L,
+                    (-base << 63) / 100000000000000L },
+            new long[] { (base << 63 - 1) / 1000000000000000L,
+                    (-base << 63) / 1000000000000000L },
+            new long[] { (base << 63 - 1) / 10000000000000000L,
+                    (-base << 63) / 10000000000000000L },
+            new long[] { (base << 63 - 1) / 100000000000000000L,
+                    (-base << 63) / 100000000000000000L },
+            new long[] { (base << 63 - 1) / 1000000000000000000L,
+                    (-base << 63) / 1000000000000000000L } };
+
+}

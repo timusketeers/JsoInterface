@@ -1,0 +1,193 @@
+package com.howbuy.jso.service.network.thread.task;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import com.howbuy.jso.service.CmdEnum;
+import com.howbuy.jso.service.network.protocol.CmdResp;
+import com.howbuy.jso.service.network.protocol.Param;
+import com.howbuy.network.entity.Result;
+
+/**
+ * 读任务
+ * @author li.zhang
+ * 2014-9-22
+ *
+ */
+public class ReadTask implements Task
+{
+    private static final int BUFFERSIZE = 1024 * 10;
+    
+    private static final String CHARSET = "utf-8";
+    
+    /** 标识任务是否已经结束. **/
+    private boolean taskEnd;
+    
+    /** 响应结果. **/
+    private Result result;
+    
+    /** key **/
+    private SelectionKey key;
+    
+    /**
+     * 构造方法
+     * @param key
+     */
+    public ReadTask(SelectionKey key)
+    {
+        this.key = key;
+    }
+    
+    public Future<Result> submit()
+    {
+        Future<Result> result = new ReadFutureResult();
+        doRead(key);
+        
+        taskEnd = true;
+        return result;
+    }
+    
+    private void doRead(SelectionKey key)
+    {
+        try
+        {
+            SocketChannel sc = (SocketChannel)key.channel();
+            ByteBuffer bb = ByteBuffer.allocate(BUFFERSIZE);
+            StringBuffer sb = new StringBuffer();
+            while (sc.read(bb) > 0)
+            {
+                bb.flip();
+                sb.append(Charset.forName(CHARSET).decode(bb));
+                bb.flip();
+            }
+            
+            System.out.println("[server:]" + sb.toString());
+            byte[] respData = sb.toString().getBytes(CHARSET);
+            CmdResp resp = CmdResp.fromByteStream(respData);
+            
+            switch (CmdEnum.forCommand(resp.getCmd()))
+            {
+                case HEART_BEAT:
+                    System.out.println("Receive heart beat from server");
+                    break;
+                    
+                case CLEAR_DIS_ACK:
+                case CLEAR_ACK:
+                case CLEAR_DIS_ACK_DTL:
+                    result = extractResult(resp);
+                    break;
+                    
+                default:
+                    break;  
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            disconnect(key);
+        }
+    }
+
+    /**
+     * 从响应中提取出Result.
+     * @param resp
+     * @return
+     */
+    private Result extractResult(CmdResp resp)
+    {
+        Result result = new Result();
+        result.setRetCode(String.valueOf(resp.getRetCode()));
+        
+        String retMsg = null;
+        Param[] params = resp.getParams();
+        if (null != params && 0 < params.length)
+        {
+            retMsg = new String(params[0].getData());
+        }
+        
+        result.setRetMsg(retMsg);
+        return result;
+    }
+
+    private void disconnect(SelectionKey key)
+    {
+        try
+        {
+            key.channel().close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    private class ReadFutureResult implements Future<Result>
+    {
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning)
+        {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled()
+        {
+            return false;
+        }
+
+        @Override
+        public boolean isDone()
+        {
+            boolean isDone = false;
+            if (taskEnd)
+            {
+                isDone = true;
+            }
+            
+            return isDone;
+        }
+
+        @Override
+        public Result get() throws InterruptedException, ExecutionException
+        {
+            /**
+             * 如果任务没有完成，一直阻塞...
+             */
+            while (!isDone());
+            
+            return result;
+        }
+
+        @Override
+        public Result get(long timeout, TimeUnit unit) throws InterruptedException, 
+            ExecutionException, TimeoutException
+        {
+            Result rslt = new Result();
+            if (!isDone())
+            {
+                unit.sleep(timeout);
+            }
+            
+            //超时.
+            if (!isDone())
+            {
+                result.setRetCode("0999");
+                result.setRetMsg("任务执行超时.");
+            }
+            else
+            {
+                //任务完成..
+                rslt = result;
+            }
+            
+            return rslt;
+        }
+    }
+}

@@ -1,0 +1,27 @@
+package com.howbuy.jso.service;
+
+/**
+ * 命令枚举
+ * @author li.zhang
+ * 2014-9-19
+ *
+ */
+public enum CmdEnum
+{
+    CLEAR_SETTLE("", 0);
+    
+    private String name;
+    
+    private int command;
+    
+    /**
+     * 构造方法
+     * @param name
+     * @param command
+     */
+    private CmdEnum(String name, int command)
+    {
+        this.name = name;
+        this.command = command;
+    }
+}

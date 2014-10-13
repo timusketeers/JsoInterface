@@ -1,0 +1,39 @@
+package com.howbuy.jso.service.network;
+
+import com.howbuy.jso.service.network.receiver.ResponseReceiver;
+import com.howbuy.jso.service.network.sender.RequestSender;
+
+/**
+ * 消息收发器
+ * @author li.zhang
+ * 2014-9-18
+ *
+ */
+public class Transceiver
+{
+    /** 消息发送者. **/
+    private RequestSender sender;
+    
+    /** 消息接收者. **/
+    private ResponseReceiver receiver;
+    
+    /**
+     * 发送消息.
+     * @param args
+     */
+    public void sendMessage(String... args)
+    {
+        sender.sendMessage(args);
+    }
+    
+
+    public RequestSender getSender()
+    {
+        return sender;
+    }
+
+    public ResponseReceiver getReceiver()
+    {
+        return receiver;
+    }
+}

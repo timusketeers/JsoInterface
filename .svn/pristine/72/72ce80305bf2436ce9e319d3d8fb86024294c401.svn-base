@@ -1,0 +1,160 @@
+package com.howbuy.jso.service.network.protocol;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.howbuy.jso.service.network.sequence.SeqIdGenerator;
+
+/**
+ * 指令请求对应的实体.
+ * @author li.zhang
+ * 2014-9-22
+ *
+ */
+public class CmdReq
+{
+    /** 整个消息的长度. **/
+    private int header;
+    
+    /** 命令的标识.  **/
+    private short cmd;
+    
+    /** 表示序列. **/
+    private int seqId = SeqIdGenerator.nextSeqId();
+    
+    /** 参数列表.**/
+    private Param[] params;
+    
+    /**
+     * 根据流构造cmdReq对象.
+     * @param data
+     * @return
+     */
+    public static CmdReq fromStream(byte[] data)
+    {
+        CmdReq req = null;
+        if (null == data || 0 == data.length)
+        {
+            return req;
+        }
+        
+        req = new CmdReq();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        req.setHeader(buffer.getInt());
+        req.setCmd(buffer.getShort());
+        req.setSeqId(buffer.getInt());
+        
+        Param param = null;
+        List<Param> params = new ArrayList<Param>();
+        while (0 < buffer.remaining())
+        {
+            param = new Param();
+            int paramHeaderLen = buffer.getInt();
+            byte[] paramData = new byte[paramHeaderLen];
+            buffer.get(paramData);
+            
+            param.setHeader(paramHeaderLen);
+            param.setData(paramData);
+            
+            params.add(param);
+        }
+        
+        Param[] paramArray = new Param[params.size()];
+        params.toArray(paramArray);
+        
+        req.setParams(paramArray);
+        return req;
+    }
+    
+    /**
+     * 将对应的实体转换成对应的字节流.
+     * @return
+     */
+    public byte[] toByteStream()
+    {
+        byte[] bytes = null;
+        ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);//1K
+        buffer.putInt(calculateHeaderLen());
+        buffer.putShort(cmd);
+        buffer.putInt(seqId);
+        if (null != params && 0 < params.length)
+        {
+            for (int i = 0; i < params.length; i++)
+            {
+                Param param = params[i];
+                buffer.putInt(caculateParamLen(param));
+                buffer.put(param.getData());
+            }
+        }
+        
+        buffer.flip();
+        bytes = new byte[buffer.limit()];
+        buffer.get(bytes, 0, buffer.limit());
+        
+        return bytes;
+    }
+
+    private int calculateHeaderLen()
+    {
+        int headerLen = (Integer.SIZE / 8) + (Short.SIZE / 8) + (Integer.SIZE / 8);
+        if (null == params || 0 == params.length)
+        {
+            return headerLen;
+        }
+        
+        for (int i = 0; i < params.length; i++)
+        {
+            Param param = params[i];
+            int paramLen = (Integer.SIZE / 8) + ((null == param.getData()) ? 0 : param.getData().length);
+            headerLen = headerLen + paramLen;
+        }
+        return headerLen;
+    }
+    
+    private int caculateParamLen(Param param)
+    {
+        int paramLen = (Integer.SIZE / 8) + ((null == param.getData()) ? 0 : param.getData().length);
+        return paramLen;
+    }
+
+    public int getHeader()
+    {
+        return header;
+    }
+
+    public void setHeader(int header)
+    {
+        this.header = header;
+    }
+
+    public short getCmd()
+    {
+        return cmd;
+    }
+
+    public void setCmd(short cmd)
+    {
+        this.cmd = cmd;
+    }
+
+    public int getSeqId()
+    {
+        return seqId;
+    }
+
+    public void setSeqId(int seqId)
+    {
+        this.seqId = seqId;
+    }
+
+    public Param[] getParams()
+    {
+        return params;
+    }
+
+    public void setParams(Param[] params)
+    {
+        this.params = params;
+    }
+}

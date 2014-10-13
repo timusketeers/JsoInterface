@@ -1,0 +1,31 @@
+package com.howbuy.jso.service.network.utils;
+
+import com.howbuy.jso.service.network.protocol.CmdResp;
+import com.howbuy.jso.service.network.protocol.Param;
+import com.howbuy.network.entity.Result;
+
+public class Utils
+{
+    public static Result fromCmdResp(CmdResp resp)
+    {
+        Result result = null;
+        if (null == resp)
+        {
+            return result;
+        }
+        
+        result = new Result();
+        result.setRetCode(String.valueOf(resp.getRetCode()));
+        
+        String retMsg = null;
+        Param[] params = resp.getParams();
+        if (null != params && 0 < params.length)
+        {
+            retMsg = new String(params[0].getData());
+        }
+        
+        result.setRetMsg(retMsg);
+        
+        return result;
+    }
+}

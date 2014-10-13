@@ -1,0 +1,44 @@
+package com.howbuy.jso.service;
+
+/**
+ * ExecuteContext执行上下文对应的注册表.
+ * @author li.zhang
+ * 2014-9-17
+ *
+ */
+public class ContextRegistry
+{
+    private static final ContextRegistry INSTANCE = new ContextRegistry();
+    
+    /**
+     * 单例
+     */
+    private ContextRegistry()
+    {
+        
+    }
+    
+    /**
+     * 返回实例.
+     * @return
+     */
+    public static ContextRegistry getInstance()
+    {
+        return INSTANCE;
+    }
+    
+    public void registryContext(String traceUniqueId, ExecuteContext context)
+    {
+        
+    }
+    
+    public ExecuteContext getContext(String traceUniqueId)
+    {
+        return null;
+    }
+    
+    public ExecuteContext removeContext(String traceUniqueId)
+    {
+        return null;
+    }
+}

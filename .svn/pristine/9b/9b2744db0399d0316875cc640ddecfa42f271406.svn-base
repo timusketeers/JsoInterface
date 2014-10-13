@@ -1,0 +1,45 @@
+package com.howbuy.jso.service;
+
+/**
+ * 命令枚举
+ * @author li.zhang
+ * 2014-9-19
+ *
+ */
+public enum CmdEnum
+{
+    /** cleardisack **/
+    CLEAR_DIS_ACK("cleardisack", 1),
+    
+    /** clearack **/
+    CLEAR_ACK("clearack", 2),
+    
+    /** cleardisackdtl **/
+    CLEAR_DIS_ACK_DTL("cleardisackdtl", 3);
+    
+    
+    private String name;
+    
+    private int command;
+    
+    /**
+     * 构造方法
+     * @param name
+     * @param command
+     */
+    private CmdEnum(String name, int command)
+    {
+        this.name = name;
+        this.command = command;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public int getCommand()
+    {
+        return command;
+    }
+}

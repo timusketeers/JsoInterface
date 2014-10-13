@@ -1,0 +1,30 @@
+package com.howbuy.jso.service.network;
+
+import com.howbuy.jso.service.network.host.Host;
+
+public class HostSelectorTest
+{
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args)
+    {
+        HostSelector selector = HostSelector.getInstance();
+        
+        Host host01 = selector.selectSingle();
+        Host host02 = selector.selectSingle();
+        Host host03 = selector.selectSingle();
+        Host host04 = selector.selectSingle();
+        Host host05 = selector.selectSingle();
+        System.out.println(host01.getPort());
+        System.out.println(host02.getPort());
+        System.out.println(host03.getPort());
+        System.out.println(host04.getPort());
+        System.out.println(host05.getPort());
+        
+        
+        while (true);
+    }
+
+}

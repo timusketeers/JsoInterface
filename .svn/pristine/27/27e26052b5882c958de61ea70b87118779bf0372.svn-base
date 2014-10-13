@@ -1,0 +1,40 @@
+
+关于java nio socket非阻塞方式的理解，个人觉得有下面几点尤其需要关注：
+
+1. 一个SelectionKey表示的是一个渠道SocketChannel(对应一个socket)和一个选择器selector之间的注册关系. 
+
+需要特别指出的是, 一个渠道channel和一个选择器selector之间只会有一个注册关系,即只会有一个SelectionKey对象.
+
+举个例子来说:
+
+       如果使用这句  SelectionKey key = channel.register(selector, SelectionKey.OP_CONNECT); 
+ 
+来注册channel和selector之间的注册关系，这句表明只关心connect事件. 如果随后，我们需要在onConnect()方法中，
+
+即已经建立连接的情况下，将该selector选择器上该渠道channel的注册关系中感兴趣的事件变为"读和写", 可以使用
+
+SelectionKey key02 = channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE)
+
+(注意: 这里需要指出的是key和key02其实是同一个对象, key02不是新对象，因为一个渠道channel和选择器selector只会有一个注册关系,理解这点很重要)
+
+或者
+
+key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE)
+
+这两句的效果是一样的，事实上channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE)这句源码中
+
+最终调用的还是 key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE)这句.
+
+
+2. 一个渠道channel和一个选择器selector之间只会有一个注册关系selectionKey.
+   
+   这句话意味着:
+   
+     1>. 一个渠道可以在多个选择器selector上各注册一个注册关系，每个选择器上该渠道的注册关系对象就是互不相同的.
+     
+     2>. 多个渠道在同一个选择器selector上的注册关系selectionKey也是各不相同的.
+     
+
+3. 请参考《Java_TCP_IP_Socket编程(原书第2版)》
+     
+     

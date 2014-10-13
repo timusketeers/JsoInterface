@@ -1,0 +1,28 @@
+package com.howbuy.jso.service.queue;
+
+import java.lang.Thread.UncaughtExceptionHandler;
+
+public class ThreadExceptionHandle implements UncaughtExceptionHandler
+{
+
+    /** 
+     * Method invoked when the given thread terminates due to the
+     * given uncaught exception.
+     * <p>Any exception thrown by this method will be ignored by the
+     * Java Virtual Machine.
+     * @param t the thread
+     * @param e the exception
+     */
+    @Override
+    public void uncaughtException(Thread t, Throwable e)
+    {
+        //线程出现异常的时候，先保证之前的线程完全关闭，并重新拉起一个新的线程.
+        if (QueueMsgDispatcher.class.isInstance(t))
+        {
+            QueueMsgDispatcher dispatch = (QueueMsgDispatcher)t;
+            dispatch.stopThread();
+        }
+        
+        //new QueueMsgDispatcher().start();
+    }
+}

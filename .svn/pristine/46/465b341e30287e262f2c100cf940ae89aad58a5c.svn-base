@@ -1,0 +1,42 @@
+package com.howbuy.jso;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.util.LinkedList;
+
+public class UserInteractive implements Runnable
+{
+
+    SelectionKey key;
+
+    public UserInteractive(SelectionKey key)
+    {
+        this.key = key;
+    }
+
+    public void run()
+    {
+        System.out.println("UserInteractive thread start...");
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        while (true)
+        {
+            try
+            {
+                String inputLine = br.readLine();
+                ByteBuffer bb = ByteBuffer.allocate(1024);
+                bb = ByteBuffer.wrap(inputLine.getBytes());
+                ((LinkedList<ByteBuffer>)key.attachment()).offer(bb);
+                System.out.println("after input, register OP_WRITE to interestOps and wakeup selector");
+                key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                key.selector().wakeup();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+}

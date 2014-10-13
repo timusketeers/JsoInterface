@@ -1,0 +1,60 @@
+package com.howbuy.jso.service.network.utils;
+
+import com.howbuy.jso.service.network.protocol.CmdResp;
+import com.howbuy.jso.service.network.protocol.Param;
+import com.howbuy.network.entity.Result;
+
+public class Utils
+{
+    public static Result fromCmdResp(CmdResp resp)
+    {
+        Result result = null;
+        if (null == resp)
+        {
+            return result;
+        }
+        
+        result = new Result();
+        result.setRetCode(concatRetCode(String.valueOf(resp.getRetCode())));
+        
+        String retMsg = null;
+        Param[] params = resp.getParams();
+        if (null != params && 0 < params.length)
+        {
+            retMsg = params[0].getParamstr();
+        }
+        
+        result.setRetMsg(retMsg);
+        
+        return result;
+    }
+
+    /**
+     * 将retCode不足4位长度的前面填充0.
+     * @param retCode
+     * @param length
+     * @return
+     */
+    private static String concatRetCode(String retCode)
+    {
+        StringBuilder builder = new StringBuilder();;
+        if (null == retCode)
+        {
+            return builder.toString();
+        }
+        
+        if (4 <= retCode.length())
+        {
+            return retCode;
+        }
+        
+        for (int i = 0; i < 4 - retCode.length(); i++)
+        {
+            builder.append('0');
+        }
+        
+        builder.append(retCode);
+        
+        return builder.toString();
+    }
+}

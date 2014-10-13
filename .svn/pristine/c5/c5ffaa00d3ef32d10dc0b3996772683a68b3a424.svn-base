@@ -1,0 +1,45 @@
+package com.howbuy.jso.service.network.utils;
+
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
+import com.howbuy.jso.service.network.protocol.CmdResp;
+import com.howbuy.jso.service.network.protocol.Param;
+import com.howbuy.network.entity.Result;
+
+public class Utils
+{
+    public static Result fromCmdResp(CmdResp resp)
+    {
+        Result result = null;
+        if (null == resp)
+        {
+            return result;
+        }
+        
+        result = new Result();
+        
+        String returnCode = null;
+        String returnMsg = null;
+        Param[] params = resp.getParams();
+        if (null != params && 0 < params.length)
+        {
+            String jsonstr = params[0].getParamstr();
+            JSONObject jsonObj = JSONObject.parseObject(jsonstr);
+
+            try
+            {
+                returnCode = (String)jsonObj.get("returnCode");
+                returnMsg = (String)jsonObj.get("returnMsg");
+            }
+            catch (JSONException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        
+        result.setRetCode(returnCode);
+        result.setRetMsg(returnMsg);
+        
+        return result;
+    }
+}

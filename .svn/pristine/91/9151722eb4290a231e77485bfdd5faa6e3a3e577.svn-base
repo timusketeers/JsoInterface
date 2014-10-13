@@ -1,0 +1,29 @@
+package com.howbuy.jso.service.processor;
+
+import java.util.concurrent.Future;
+
+import com.howbuy.jso.service.network.future.ExceptionResultFuture;
+import com.howbuy.network.entity.Result;
+
+public class ClearAckProcessor implements IProcessor
+{
+    /**
+     * 逻辑处理.
+     * @param args
+     */
+    public Future<Result> process(String... args)
+    {
+        Future<Result> result = null;
+
+        String cmd = args[0];
+        if (2 != args.length)
+        {
+            result = new ExceptionResultFuture("0999", "Args error, please check the args.");
+            return result;
+        }
+        
+        String taCode = args[1];
+        
+        return result;
+    }
+}

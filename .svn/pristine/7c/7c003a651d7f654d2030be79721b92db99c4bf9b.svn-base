@@ -1,0 +1,12 @@
+package com.howbuy.jso.service;
+
+/**
+ * 执行环境, 一个traceUniqueId，对应一个执行环境.
+ * @author li.zhang
+ * 2014-9-17
+ *
+ */
+public class ExecuteContext
+{
+
+}

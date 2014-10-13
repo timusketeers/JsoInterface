@@ -1,0 +1,128 @@
+package com.howbuy.jso.service.network.thread;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Set;
+import java.util.concurrent.Future;
+
+import com.howbuy.jso.service.network.thread.task.ReadTask;
+import com.howbuy.jso.service.network.thread.task.WriteTask;
+import com.howbuy.network.entity.Result;
+
+/**
+ * 端口就绪事件处理线程.
+ * @author li.zhang
+ * 2014-9-22
+ *
+ */
+public class SocketReadyThread implements Runnable
+{
+    private Selector selector;
+    
+    private Future<Result> result;
+    
+    /**
+     * 构造方法
+     */
+    public SocketReadyThread(Selector sel)
+    {
+        selector = sel;
+    }
+    
+    public void run()
+    {
+        try
+        {
+            while (!Thread.interrupted())
+            {
+                int keysCount = selector.select();
+                if (keysCount < 1)
+                {
+                    continue;
+                }
+                
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                Iterator<SelectionKey> it = selectedKeys.iterator();
+                while (it.hasNext())
+                {
+                    SelectionKey key = it.next();
+                    if (key.isConnectable())
+                    {
+                        doConnect(key);
+                    }
+                    else if (key.isValid() && key.isReadable())
+                    {
+                        ReadTask task = new ReadTask(key);
+                        result = task.submit();
+                    }
+                    else if (key.isValid() && key.isWritable())
+                    {
+                        WriteTask write = new WriteTask(key);  
+                        write.submit();
+                    }
+                }
+                
+                selectedKeys.clear();
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        
+        shutdown();
+    }
+    
+    public void shutdown()
+    {
+        Set<SelectionKey> keys = selector.keys();
+        for (SelectionKey key : keys)
+        {
+            try
+            {
+                key.channel().close();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        
+        try
+        {
+            selector.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    private void doConnect(SelectionKey key)
+    {
+        try
+        {
+            ((SocketChannel)key.channel()).finishConnect();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return;
+        }
+        
+        key.interestOps(SelectionKey.OP_READ);
+        key.attach(new LinkedList<ByteBuffer>());
+        new Thread(new UserInteractive(selector, key)).start();
+        new Thread(new HeartbeatThread(selector, key)).start();
+    }
+
+    public Future<Result> getResult()
+    {
+        return result;
+    }
+}

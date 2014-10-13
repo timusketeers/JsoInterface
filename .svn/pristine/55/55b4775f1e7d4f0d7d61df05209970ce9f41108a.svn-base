@@ -1,0 +1,59 @@
+package com.howbuy.jso.service.queue.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.howbuy.jso.service.queue.QueueService;
+
+/**
+ * 队列服务
+ * @author li.zhang
+ * 2014-9-16
+ *
+ */
+public class QueueServiceImpl implements QueueService
+{
+    /** 队列. **/
+    private List<Object> queue = new ArrayList<Object>();
+    
+    public synchronized void push(Object obj)
+    {
+        queue.add(obj);
+    }
+
+    @Override
+    public Object pop()
+    {
+        Object obj = null;
+        synchronized (queue)
+        {
+            if (!queue.isEmpty())
+            {
+                obj = queue.remove(0);
+            }
+        }
+        
+        return obj;
+    }
+
+    @Override
+    public Object peek()
+    {
+        Object obj = null;
+        synchronized (queue)
+        {
+            if (!queue.isEmpty())
+            {
+                obj = queue.get(0);
+            }
+        }
+        
+        return obj;
+    }
+
+    @Override
+    public boolean isQueueEmpty()
+    {
+        return queue.isEmpty();
+    }
+}

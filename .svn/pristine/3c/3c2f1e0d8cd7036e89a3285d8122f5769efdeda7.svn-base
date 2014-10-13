@@ -1,0 +1,143 @@
+package com.howbuy.jso.service.network.monitor;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.Properties;
+
+/**
+ * 应用节点监听者.
+ * @author li.zhang
+ * 2014-9-17
+ *
+ */
+public class NodeMonitor implements Runnable
+{
+    /** 表示被监视的目标***/
+    private Map<String, Socket> target;
+    
+    /** 服务器列表. **/
+    private String serverList;
+    
+    /**
+     * 构造方法.
+     * @param monitorTarget monitorTarget
+     * @throws Exception 
+     */
+    public NodeMonitor(Map<String, Socket> monitorTarget) 
+        throws Exception
+    {
+        target = monitorTarget;
+        Properties properties = new Properties();
+        properties.load(getClass().getResourceAsStream("config.properties"));
+        serverList = properties.getProperty("settle.servers.list");
+    }
+    
+    @Override
+    public void run()
+    {
+        while (true)
+        {
+            monitor();
+        }
+    }
+
+    private void monitor()
+    {
+        if (null == serverList || serverList.isEmpty())
+        {
+            return;
+        }
+        
+        String[] servers = serverList.split(",");
+        if (null == servers)
+        {
+            return;
+        }
+        
+        for (int i = 0; i < servers.length; i++)
+        {
+            String server = servers[i];
+            String[] splits = server.split(":");
+            if (null == splits || 2 != splits.length)
+            {
+                continue;
+            }
+            
+            String hostName = splits[0];
+            String port = splits[1];
+            String key = hostName + "_" + port;
+            
+            Socket s = target.get(key);
+            if (null == s || s.isClosed())
+            {
+                try
+                {
+                    s = new Socket(hostName, Integer.parseInt(port));
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+            
+            if (!checkSocket(s))
+            {
+                continue;
+            }
+            
+            target.put(key, s);
+        }
+    }
+
+    private boolean checkSocket(Socket s)
+    {
+        boolean flag = false;
+        if (s.isClosed())
+        {
+            return flag;
+        }
+        
+        flag = pingOK(s);
+        
+        return flag;
+    }
+
+    private boolean pingOK(Socket s)
+    {
+        try
+        {
+            OutputStream output = s.getOutputStream();
+            InputStream input = s.getInputStream();
+            output.write("OK".getBytes());
+            output.flush();
+            
+            ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
+            buffer.clear();
+            
+            int a = -1;
+            while (-1 != (a = input.read()))
+            {
+                byte[] bytes = new byte[a];
+                input.read(bytes);
+                buffer.put(bytes);
+            }
+            
+            buffer.flip();
+            byte[] rslt = new byte[buffer.limit()];
+            buffer.get(rslt);
+            
+            String resp = new String(rslt);
+            System.out.println("Response is : " + resp);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+       
+        
+        return false;
+    }
+}
